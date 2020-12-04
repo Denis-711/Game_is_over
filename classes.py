@@ -3,7 +3,7 @@ import pygame as pg
 
 class Camera():
     def __init__(self, camera_func, size):
-        self.rect = pg.Rect(0, 0, size[0], size[1])
+        self.rect = pg.Rect((0, 0), size)
         self.camera_func = camera_func
     
     def apply (self, target):
@@ -13,25 +13,54 @@ class Camera():
         self.rect = self.camera_func(self.rect, target.rect)
 
 
-class Player(pg.sprite.Sprite):   
+class Player(pg.sprite.Sprite):
+    """
+    Класс игрока.
+    Наследуется от pygame.sprite.Sprite и имеет станадартные атрибуты:
+    image - поверхность с изображением персонажа
+    rect - прямоугольник соотвествующий физической модели
+           игрока в игровом простарнстве.
+
+    Атрибуты реакция на команды:
+    move_dir - массив из двух чисел, первое отвечает за движение
+               по горизонтали(1 - двигаться вправо, -1 - двигаться влево,
+               0 - не двигаться по горизонтали), второе отвечает за прыжок
+               (1 - выполнить прыжок, 0 -не выполнять прыжок).
+     
+    Атрибуты движения:
+    speed - текущая скорость передвижения в виде массива из проекций на оси
+    
+    Атрибуты взаимодействия с блоками:
+    footing - если 1, то герой находится ногами на блоке в данный момент
+              если 0, то герой не имеет опоры в данный момент              
+    """   
     def __init__(self, coords, speed):
-        self.move_dir = [0, 0]
+        """
+        Функция инициализирует объект игрока.
+        Ключевые аргументы:
+        coords - начальные координаты положения(массив из 2 чисел)
+        speed - начальная скорость движения(массив из 2 чисел)
+        """
         pg.sprite.Sprite.__init__(self)
-        self.speed = speed
-        self.image = pg.Surface((84, 135))
+        
+        size = (84, 135) #размер героя соответсвует размеру его картинки
+        self.image = pg.Surface(size)
         self.image = pg.image.load("sprites/GG.png")
-        self.rect = pg.Rect(coords, (84, 135))
+        self.rect = pg.Rect(coords, (size))
+        
         self.footing = 0
+        self.move_dir = [0, 0]
+        self.speed = speed
     
     def update(self, move_dir, objects):
         self.move_dir = move_dir
         self.speed[0] = 20 * self.move_dir[0]
         
         if(self.footing == 1):
-            self.speed[1] = -30 * self.move_dir[1]
+            self.speed[1] = -40 * self.move_dir[1]
             self.footing = (self.move_dir[1] + 1) % 2
         if not self.footing:
-            self.speed[1] += 1
+            self.speed[1] += 2
         self.footing = 0
         self.rect.y += self.speed[1]
         self.check_collide(objects, (0, self.speed[1]))
@@ -78,17 +107,32 @@ class Manager():
         self.move_dir = [0, 0]
         pg.init()
         level = [
-                 "+                           +",
-                 "+                           +",
-                 "+                           +",
-                 "+                           +",
-                 "+                           +",
-                 "+                  +++      +",
-                 "+                           +",
-                 "+                           +",
-                 "+         +++               +",
-                 "+                           +",
-                 "+++++++++++++++++++++++++++++"]
+                 "+                           +     +",
+                 "+                           +     +",
+                 "+                           +     +",
+                 "+                     ++    +     +",
+                 "+                           +     +",
+                 "+                           +     +",
+                 "+                           +     +",
+                 "+              ++           +     +",
+                 "+                           +     +",
+                 "+                           +     +",
+                 "+                    ++     +     +",
+                 "+                           +     +",
+                 "+         +               + +     +",
+                 "+                           +     +",
+                 "+              +            +     +",
+                 "+                           +     +",
+                 "+                   ++      +     +",
+                 "+                           +     +",
+                 "+                           +     +",
+                 "+            ++             +     +",
+                 "+                  +++      +     +",
+                 "+                           +     +",
+                 "+              +            +     +",
+                 "+       +++                 +     +",
+                 "+                           +     +",
+                 "+++++++++++++++++++++++++++++++++++"]
         self.level_size = (len(level[0]) * 128, len(level) * 64)
         brick = Brick((len(level[0]) * 2, len(level) * 1))
         self.player = Player([300, 300], [0, 0])
@@ -104,9 +148,7 @@ class Manager():
                               
 
         
-        self.screen = pg.display.set_mode((1200, 800))
-        total_level_width  = len(level[0]) * 128 # Высчитываем фактическую ширину уровня
-        total_level_height = len(level) * 64   # высоту
+        self.screen = pg.display.set_mode((1800, 900))
          
         self.camera = Camera(camera_configure, (len(level[0]) * 128, len(level) * 64)) 
         
@@ -118,18 +160,18 @@ class Manager():
             if event.type == pg.QUIT:
                 done = True
             if event.type == pg.KEYDOWN:
-                if event.key == pg.K_UP:
+                if event.key == pg.K_SPACE:
                     self.move_dir[1] = 1
-                if event.key == pg.K_LEFT:
+                if event.key == pg.K_a:
                     self.move_dir[0] = -1
-                elif event.key == pg.K_RIGHT:
+                elif event.key == pg.K_d:
                     self.move_dir[0] = 1
             if event.type == pg.KEYUP:
-                if event.key == pg.K_UP:
+                if event.key == pg.K_SPACE:
                     self.move_dir[1] = 0
-                if event.key == pg.K_LEFT:
+                if event.key == pg.K_a:
                     self.move_dir[0] = 0
-                elif event.key == pg.K_RIGHT:
+                elif event.key == pg.K_d:
                     self.move_dir[0] = 0
         
         self.player.update(self.move_dir, self.bricks)
@@ -150,15 +192,27 @@ class Manager():
         
 
 def camera_configure(camera, target_rect):
-    win_height = 1200
-    win_width = 800
-    l, t, _, _ = target_rect
-    _, _, w, h = camera
-    l, t = -l+win_width/ 2, -t+win_height / 2
+    win_height = 900
+    win_width = 1800
+    l = target_rect.left
+    t = target_rect.top
+    w = camera.width
+    h = camera.height
+
+    l, t = -l+win_width/ 2, -t + target_rect.height
 
     l = min(0, l)                           # Не движемся дальше левой границы
     l = max(-(camera.width-win_width), l)   # Не движемся дальше правой границы
-    t = max(-(camera.height-win_height), t) # Не движемся дальше нижней границы
-    t = min(0, t)                           # Не движемся дальше верхней границы
+    
+    """
+    Если игрок внизу, то камера ориентируется по уровню пола,
+    если игрок далеко от низа, то камера ориентируется так,
+    чтобы игрок был вверху экрана
+    """
+    t = max(t, -camera.height + win_height) 
+   
+    
+    
+    
 
-    return pg.Rect(l, t, w, h)      
+    return pg.Rect(l, t , w, h)      
