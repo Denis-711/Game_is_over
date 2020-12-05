@@ -150,7 +150,8 @@ class Manager():
         
         self.screen = pg.display.set_mode((1800, 900))
          
-        self.camera = Camera(camera_configure, (len(level[0]) * 128, len(level) * 64)) 
+        self.camera = Camera(camera_configure, (len(level[0]) * 128,
+                                                len(level) * 64))
         
         pg.display.set_caption("Game_is_over")    
 
