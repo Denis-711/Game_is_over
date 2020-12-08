@@ -1,4 +1,5 @@
 import pygame as pg
+import yaml
 
 
 class Camera():
@@ -6,7 +7,7 @@ class Camera():
         self.rect = pg.Rect((0, 0), size)
         self.camera_func = camera_func
     
-    def apply (self, target):
+    def apply(self, target):
         return target.rect.move(self.rect.topleft)
     
     def update(self, target):
@@ -43,7 +44,7 @@ class Player(pg.sprite.Sprite):
         """
         pg.sprite.Sprite.__init__(self)
         
-        size = (84, 135) #размер героя соответсвует размеру его картинки
+        size = (84, 135)  # размер героя соответсвует размеру его картинки
         self.image = pg.Surface(size)
         self.image = pg.image.load("sprites/GG.png")
         self.rect = pg.Rect(coords, (size))
@@ -67,7 +68,7 @@ class Player(pg.sprite.Sprite):
         
         
         self.rect.x += self.speed[0]
-        self.check_collide(objects,(self.speed[0], 0))
+        self.check_collide(objects, (self.speed[0], 0))
         print(self.speed)
          
     def check_collide(self, objects, velocity):  
@@ -106,33 +107,9 @@ class Manager():
     def __init__(self):
         self.move_dir = [0, 0]
         pg.init()
-        level = [
-                 "+                           +     +",
-                 "+                           +     +",
-                 "+                           +     +",
-                 "+                     ++    +     +",
-                 "+                           +     +",
-                 "+                           +     +",
-                 "+                           +     +",
-                 "+              ++           +     +",
-                 "+                           +     +",
-                 "+                           +     +",
-                 "+                    ++     +     +",
-                 "+                           +     +",
-                 "+         +               + +     +",
-                 "+                           +     +",
-                 "+              +            +     +",
-                 "+                           +     +",
-                 "+                   ++      +     +",
-                 "+                           +     +",
-                 "+                           +     +",
-                 "+            ++             +     +",
-                 "+                  +++      +     +",
-                 "+                           +     +",
-                 "+              +            +     +",
-                 "+       +++                 +     +",
-                 "+                           +     +",
-                 "+++++++++++++++++++++++++++++++++++"]
+        with open('platform.yaml') as f:  # открытие файла ямл, где хранятся данные о расположении блоков
+            level = yaml.safe_load(f)
+
         self.level_size = (len(level[0]) * 128, len(level) * 64)
         brick = Brick((len(level[0]) * 2, len(level) * 1))
         self.player = Player([300, 300], [0, 0])
@@ -216,4 +193,4 @@ def camera_configure(camera, target_rect):
     
     
 
-    return pg.Rect(l, t , w, h)      
+    return pg.Rect(l, t, w, h)
