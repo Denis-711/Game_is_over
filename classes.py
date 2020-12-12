@@ -65,8 +65,7 @@ class Player(pg.sprite.Sprite):
         self.footing = 0
         self.rect.y += self.speed[1]
         self.check_collide(objects, (0, self.speed[1]))
-        
-        
+
         self.rect.x += self.speed[0]
         self.check_collide(objects, (self.speed[0], 0))
         print(self.speed)
@@ -117,6 +116,7 @@ class Manager():
         self.game_objects = pg.sprite.Group()
         self.game_objects.add(self.player)
         for i in range(len(level)):
+            print(len(level))
             for j in range(len(level[0])):
                 if (level[i][j] == "+"):
                     brick = Brick([j * 128, i * 64])
