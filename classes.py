@@ -57,7 +57,7 @@ class Player(pg.sprite.Sprite):
         self.move_dir = move_dir
         self.speed[0] = 20 * self.move_dir[0]
         
-        if(self.footing == 1):
+        if (self.footing == 1):
             self.speed[1] = -40 * self.move_dir[1]
             self.footing = (self.move_dir[1] + 1) % 2
         if not self.footing:
@@ -139,21 +139,20 @@ class Manager():
                 done = True
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_SPACE:
-                    self.move_dir[1] = 1
+                    self.move_dir[1] += 1
                 if event.key == pg.K_a:
-                    self.move_dir[0] = -1
+                    self.move_dir[0] += -1
                 elif event.key == pg.K_d:
-                    self.move_dir[0] = 1
+                    self.move_dir[0] += 1
             if event.type == pg.KEYUP:
                 if event.key == pg.K_SPACE:
                     self.move_dir[1] = 0
                 if event.key == pg.K_a:
-                    self.move_dir[0] = 0
+                    self.move_dir[0] -= -1
                 elif event.key == pg.K_d:
-                    self.move_dir[0] = 0
+                    self.move_dir[0] -= 1
         
         self.player.update(self.move_dir, self.bricks)
-        self.game_objects.draw(self.screen)
         return done
         
     def process(self, events):
