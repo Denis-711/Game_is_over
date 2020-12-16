@@ -1,5 +1,6 @@
 import pygame as pg
 import yaml
+import random
 
 class Dyna_obj(pg.sprite.Sprite):
     def __init__(self, coords, speed, size, image_file):
@@ -84,13 +85,13 @@ class Player(Dyna_obj):
         coords - начальные координаты положения(массив из 2 чисел)
         speed - начальная скорость движения(массив из 2 чисел)
         """
-        size = (84, 135)  # размер героя соответсвует размеру его картинки
+        size = (79, 127)  # размер героя соответсвует размеру его картинки
         image_file = "sprites/GG.png"
         Dyna_obj.__init__(self, coords, speed, size, image_file)
         
     def update(self, move_dir, objects):
         self.move_dir = move_dir
-        self.speed[0] = 20 * self.move_dir[0]
+        self.speed[0] = 50 * self.move_dir[0]
         
         if (self.footing == 1):
             self.speed[1] = -40 * self.move_dir[1]
@@ -106,6 +107,34 @@ class Player(Dyna_obj):
         print(self.speed)
 
 
+class Enemy(Dyna_obj):
+    def __init__(self, coords, speed):
+        self.max_dist = 700              #определяет доступную зону
+        self.spawn_coord = coords
+        size = (0.75 * 129,127)
+        image_file = "Minotaur.png"
+        Dyna_obj.__init__(self, coords, speed, size, image_file)
+    
+    def update(self, objects):
+        if (self.rect.x > self.spawn_coord[0] + self.max_dist):
+            self.move_dir[0] = -1
+        if (self.rect.x < self.spawn_coord[0] - self.max_dist):
+            self.move_dir[0] = 1
+        if (self.speed[0] == 0):
+            self.move_dir[0] = random.randint(-1, 1)
+        self.speed[0] = 30 * self.move_dir[0]
+        
+        if not self.footing:
+            self.speed[1] += 4
+        self.footing = 0
+        self.rect.y += self.speed[1]
+        self.check_collide(objects, (0, self.speed[1]))
+
+        self.rect.x += self.speed[0]
+        self.check_collide(objects, (self.speed[0], 0))
+        print(self.speed)
+        
+
 class Brick(pg.sprite.Sprite):
     def __init__(self, coords):
         size = (128, 64)
@@ -118,8 +147,8 @@ class Manager():
         brick_size = (128, 64)   #размер обычного блока
         win_size = (900, 1800)   #размер игрового окна
         k = 1                    #регулирование дальности прорисовки
-        self.max_dist = k * (win_size[0]**2 + win_size[1]**2)**0.5
         
+        self.max_dist = k * (win_size[0]**2 + win_size[1]**2)**0.5        
         self.move_dir = [0, 0]
         pg.init()
         with open('platform.yaml') as f:  # открытие файла ямл, где хранятся данные о расположении блоков
@@ -128,6 +157,7 @@ class Manager():
         self.level_size = (len(level[0]) * brick_size[0], len(level) * brick_size[1])
         brick = Brick((len(level[0]) * 2, len(level) * 1))
         self.bricks = []
+        self.enemies = []
         self.game_objects = pg.sprite.Group()
         for i in range(len(level)):
             for j in range(len(level[0])):
@@ -137,6 +167,11 @@ class Manager():
                     self.bricks.append(brick)
                 if (level[i][j] == "0"):
                     spawn_coords = [j * brick_size[0], i * brick_size[1]]
+                if (level[i][j] == "1"):
+                    enemy_coord = [j * brick_size[0], i * brick_size[1]]
+                    enemy = Enemy(enemy_coord, [0, 0])
+                    self.game_objects.add(enemy)
+                    self.enemies.append(enemy)
                               
         self.player = Player(spawn_coords, [0, 0])
         self.game_objects.add(self.player)
@@ -172,6 +207,9 @@ class Manager():
         
     def process(self, events):
         done = self.handle_events(events)
+        
+        for enemy in self.enemies:
+            enemy.update(self.bricks)
         background = pg.Surface(self.level_size)
         background.fill((0, 0, 0))
         self.screen.blit(background, (0, 0))
