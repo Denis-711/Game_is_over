@@ -44,15 +44,16 @@ class Static_obj(pg.sprite.Sprite):
 
 
 class Camera():
-    def __init__(self, camera_func, size):
-        self.rect = pg.Rect((0, 0), size)
+    def __init__(self, camera_func, full_size, win_size):
+        self.win_size = win_size
+        self.rect = pg.Rect((0, 0), full_size)
         self.camera_func = camera_func
     
     def apply(self, target):
         return target.rect.move(self.rect.topleft)
     
     def update(self, target):
-        self.rect = self.camera_func(self.rect, target.rect)
+        self.rect = self.camera_func(self.rect, target.rect, self.win_size)
 
 
 class Player(Dyna_obj):
@@ -114,7 +115,10 @@ class Brick(pg.sprite.Sprite):
 
 class Manager():
     def __init__(self):
-        brick_size = (128, 64)
+        brick_size = (128, 64)   #размер обычного блока
+        win_size = (900, 1800)   #размер игрового окна
+        k = 1                    #регулирование дальности прорисовки
+        self.max_dist = k * (win_size[0]**2 + win_size[1]**2)**0.5
         
         self.move_dir = [0, 0]
         pg.init()
@@ -134,13 +138,12 @@ class Manager():
                 if (level[i][j] == "0"):
                     spawn_coords = [j * brick_size[0], i * brick_size[1]]
                               
-
         self.player = Player(spawn_coords, [0, 0])
         self.game_objects.add(self.player)
         self.screen = pg.display.set_mode((1800, 900))
          
         self.camera = Camera(camera_configure, (len(level[0]) * brick_size[0],
-                                                len(level) * brick_size[1]))
+                                                len(level) * brick_size[1]), win_size)
         
         pg.display.set_caption("Game_is_over")    
 
@@ -175,14 +178,19 @@ class Manager():
         
         self.camera.update(self.player) 
         for obj in self.game_objects:
-            self.screen.blit(obj.image, self.camera.apply(obj))
+            dist_x = (self.player.rect.x - obj.rect.x)
+            dist_y = (self.player.rect.y - obj.rect.y)
+            dist = (dist_y**2 + dist_x**2)**(0.5)
+            
+            if(dist < self.max_dist):
+                self.screen.blit(obj.image, self.camera.apply(obj))
         pg.display.update()
         return done
         
 
-def camera_configure(camera, target_rect):
-    win_height = 900
-    win_width = 1800
+def camera_configure(camera, target_rect, win_size):
+    win_height = win_size[0]
+    win_width = win_size[1]
     l = target_rect.left
     t = target_rect.top
     w = camera.width
