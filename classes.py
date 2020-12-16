@@ -1,6 +1,47 @@
 import pygame as pg
 import yaml
 
+class Dyna_obj(pg.sprite.Sprite):
+    def __init__(self, coords, speed, size, image_file):
+        pg.sprite.Sprite.__init__(self)
+        
+        self.image = pg.Surface(size)
+        self.image = pg.image.load(image_file)
+        self.rect = pg.Rect(coords, (size))
+        
+        self.footing = 0
+        self.move_dir = [0, 0]
+        self.speed = speed
+    
+    def check_collide(self, objects, velocity):  
+        for obj in objects:
+            if pg.sprite.collide_rect(self, obj):
+               
+                if (velocity[0] > 0):
+                    self.rect.right = obj.rect.left 
+                    self.speed[0] = 0
+                    
+                if(velocity[0] < 0):
+                    self.rect.left = obj.rect.right 
+                    self.speed[0] = 0
+                  
+                if (velocity[1] > 0):
+                    self.rect.bottom = obj.rect.top 
+                    self.speed[1] = 0
+                    self.footing = 1
+                   
+                if (velocity[1] < 0):
+                    self.speed[1] = 0
+                    self.rect.top = obj.rect.bottom
+
+
+class Static_obj(pg.sprite.Sprite):
+    def __init__(self, coords, size, image_file):
+        pg.sprite.Sprite.__init__(self)
+        self.image = pg.Surface((size))
+        self.image = pg.image.load(image_file)
+        self.rect = pg.Rect(coords, (size))
+
 
 class Camera():
     def __init__(self, camera_func, size):
@@ -14,7 +55,7 @@ class Camera():
         self.rect = self.camera_func(self.rect, target.rect)
 
 
-class Player(pg.sprite.Sprite):
+class Player(Dyna_obj):
     """
     Класс игрока.
     Наследуется от pygame.sprite.Sprite и имеет станадартные атрибуты:
@@ -42,17 +83,10 @@ class Player(pg.sprite.Sprite):
         coords - начальные координаты положения(массив из 2 чисел)
         speed - начальная скорость движения(массив из 2 чисел)
         """
-        pg.sprite.Sprite.__init__(self)
-        
         size = (84, 135)  # размер героя соответсвует размеру его картинки
-        self.image = pg.Surface(size)
-        self.image = pg.image.load("sprites/GG.png")
-        self.rect = pg.Rect(coords, (size))
+        image_file = "sprites/GG.png"
+        Dyna_obj.__init__(self, coords, speed, size, image_file)
         
-        self.footing = 0
-        self.move_dir = [0, 0]
-        self.speed = speed
-    
     def update(self, move_dir, objects):
         self.move_dir = move_dir
         self.speed[0] = 20 * self.move_dir[0]
@@ -69,66 +103,44 @@ class Player(pg.sprite.Sprite):
         self.rect.x += self.speed[0]
         self.check_collide(objects, (self.speed[0], 0))
         print(self.speed)
-         
-    def check_collide(self, objects, velocity):  
-        for obj in objects:
-            if pg.sprite.collide_rect(self, obj):
-               
-                if (velocity[0] > 0):
-                    self.rect.right = obj.rect.left 
-                    self.speed[0] = 0
-                    print('right')
-                if(velocity[0] < 0):
-                    self.rect.left = obj.rect.right 
-                    self.speed[0] = 0
-                    print('left')
-                if (velocity[1] > 0):
-                    self.rect.bottom = obj.rect.top 
-                    self.speed[1] = 0
-                    self.footing = 1
-                    print('bottom')
-                    
-                if (velocity[1] < 0):
-                    self.speed[1] = 0
-                    print('top')
-                    self.rect.top = obj.rect.bottom
 
 
 class Brick(pg.sprite.Sprite):
     def __init__(self, coords):
-        pg.sprite.Sprite.__init__(self)
-        self.image = pg.Surface((128, 64))
-        self.image = pg.image.load("sprites/block_deck.png")
-        self.rect = pg.Rect(coords, (128, 64))
-        
+        size = (128, 64)
+        image_file = "sprites/block_deck.png"
+        Static_obj.__init__(self, coords, size, image_file)
+       
 
 class Manager():
     def __init__(self):
+        brick_size = (128, 64)
+        
         self.move_dir = [0, 0]
         pg.init()
         with open('platform.yaml') as f:  # открытие файла ямл, где хранятся данные о расположении блоков
             level = yaml.safe_load(f)
 
-        self.level_size = (len(level[0]) * 128, len(level) * 64)
+        self.level_size = (len(level[0]) * brick_size[0], len(level) * brick_size[1])
         brick = Brick((len(level[0]) * 2, len(level) * 1))
-        self.player = Player([300, 300], [0, 0])
         self.bricks = []
         self.game_objects = pg.sprite.Group()
-        self.game_objects.add(self.player)
         for i in range(len(level)):
-            print(len(level))
             for j in range(len(level[0])):
                 if (level[i][j] == "+"):
-                    brick = Brick([j * 128, i * 64])
+                    brick = Brick([j * brick_size[0], i * brick_size[1]])
                     self.game_objects.add(brick)
                     self.bricks.append(brick)
+                if (level[i][j] == "0"):
+                    spawn_coords = [j * brick_size[0], i * brick_size[1]]
                               
 
-        
+        self.player = Player(spawn_coords, [0, 0])
+        self.game_objects.add(self.player)
         self.screen = pg.display.set_mode((1800, 900))
          
-        self.camera = Camera(camera_configure, (len(level[0]) * 128,
-                                                len(level) * 64))
+        self.camera = Camera(camera_configure, (len(level[0]) * brick_size[0],
+                                                len(level) * brick_size[1]))
         
         pg.display.set_caption("Game_is_over")    
 
@@ -187,9 +199,6 @@ def camera_configure(camera, target_rect):
     чтобы игрок был вверху экрана
     """
     t = max(t, -camera.height + win_height) 
-   
     
-    
-    
-
     return pg.Rect(l, t, w, h)
+
