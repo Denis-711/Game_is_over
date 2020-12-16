@@ -112,10 +112,11 @@ class Player(Dyna_obj):
 
 class Enemy(Dyna_obj):
     def __init__(self, coords, speed):
-        self.max_dist = 700              #определяет доступную зону
+        self.max_dist = 700                           #определяет доступную зону
+        
         self.spawn_coord = coords
         size = (0.75 * 129,127)
-        image_file = "Minotaur.png"
+        image_file = "sprites/Minotaur.png"
         Dyna_obj.__init__(self, coords, speed, size, image_file)
     
     def update(self, objects):
