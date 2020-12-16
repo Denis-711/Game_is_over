@@ -14,26 +14,29 @@ class Dyna_obj(pg.sprite.Sprite):
         self.move_dir = [0, 0]
         self.speed = speed
     
-    def check_collide(self, objects, velocity):  
+    def check_collide(self, objects, velocity):
+        #максимальная дальность взаимодействия
+        max_dist = 400                    
         for obj in objects:
-            if pg.sprite.collide_rect(self, obj):
+            if (abs(obj.rect.x - self.rect.x) < max_dist):
+                if pg.sprite.collide_rect(self, obj):
                
-                if (velocity[0] > 0):
-                    self.rect.right = obj.rect.left 
-                    self.speed[0] = 0
+                    if (velocity[0] > 0):
+                        self.rect.right = obj.rect.left 
+                        self.speed[0] = 0
                     
-                if(velocity[0] < 0):
-                    self.rect.left = obj.rect.right 
-                    self.speed[0] = 0
+                    if(velocity[0] < 0):
+                        self.rect.left = obj.rect.right 
+                        self.speed[0] = 0
                   
-                if (velocity[1] > 0):
-                    self.rect.bottom = obj.rect.top 
-                    self.speed[1] = 0
-                    self.footing = 1
+                    if (velocity[1] > 0):
+                        self.rect.bottom = obj.rect.top 
+                        self.speed[1] = 0
+                        self.footing = 1
                    
-                if (velocity[1] < 0):
-                    self.speed[1] = 0
-                    self.rect.top = obj.rect.bottom
+                    if (velocity[1] < 0):
+                        self.speed[1] = 0
+                        self.rect.top = obj.rect.bottom
 
 
 class Static_obj(pg.sprite.Sprite):
