@@ -1,13 +1,41 @@
 import pygame as pg
 import yaml
 import random
+import os
+import pyganim 
 
 class Dyna_obj(pg.sprite.Sprite):
     def __init__(self, coords, speed, size, image_file):
         pg.sprite.Sprite.__init__(self)
         
+        #извлечение анимаций
+        anim_files = []
+        for i in os.walk(image_file):
+            anim_files.append(i)
+        anim_atack = []
+        anim_jump = []
+        anim_stand = []
+        anim_delay = 1
+        for adress, dirs, files in anim_files:
+            if(adress == image_file + "/atack"):
+                for one_file in files:
+                    anim_atack.append((str(adress + "/" + one_file), anim_delay))
+            if(adress == image_file + "/jump"):
+                for one_file in files:
+                    anim_jump.append((str(adress + "/" + one_file), anim_delay))
+	        
+            if(adress == image_file + "/stand"):
+                for one_file in files:
+                    anim_stand.append((str(adress + "/" + one_file), anim_delay))
+
+        self.anim_atack = pyganim.PygAnimation(anim_atack)
+        self.anim_atack.play()
+        self.anim_jump = pyganim.PygAnimation(anim_jump)
+        self.anim_jump.play()
+        self.anim_stand = pyganim.PygAnimation(anim_stand)
+        self.anim_stand.play()    
+        
         self.image = pg.Surface(size)
-        self.image = pg.image.load(image_file)
         self.rect = pg.Rect(coords, (size))
         
         self.footing = 0
@@ -88,26 +116,38 @@ class Player(Dyna_obj):
         coords - начальные координаты положения(массив из 2 чисел)
         speed - начальная скорость движения(массив из 2 чисел)
         """
-        size = (79, 127)  # размер героя соответсвует размеру его картинки
-        image_file = "sprites/GG.png"
+        size = (86, 120)  # размер героя соответсвует размеру его картинки
+        image_file = "sprites/sprites_beta/GG"
         Dyna_obj.__init__(self, coords, speed, size, image_file)
         
-    def update(self, move_dir, objects):
-        self.move_dir = move_dir
-        self.speed[0] = 50 * self.move_dir[0]
         
-        if (self.footing == 1):
-            self.speed[1] = -40 * self.move_dir[1]
+    def update(self, move_dir, objects):
+		
+        self.move_dir = move_dir
+        print(self.move_dir)
+        self.speed[0] = 40 * self.move_dir[0]
+        
+        if(self.move_dir[1] == 1 and self.footing):
+            self.image.fill((0, 0, 0))
+            self.image.set_colorkey((0, 0, 0))
+            self.anim_jump.blit(self.image, (0, 0))
+            
+        if(self.move_dir[1] == 0 and self.footing):
+            self.image.fill((0, 0, 0))
+            self.image.set_colorkey((0, 0, 0))
+            self.anim_stand.blit(self.image, (0, 0))
+           
+        if self.footing:
+            self.speed[1] = -80 * self.move_dir[1]
             self.footing = (self.move_dir[1] + 1) % 2
         if not self.footing:
-            self.speed[1] += 2
+            self.speed[1] += 10
         self.footing = 0
         self.rect.y += self.speed[1]
         self.check_collide(objects, (0, self.speed[1]))
 
         self.rect.x += self.speed[0]
         self.check_collide(objects, (self.speed[0], 0))
-        print(self.speed)
 
 
 class Enemy(Dyna_obj):
@@ -116,7 +156,7 @@ class Enemy(Dyna_obj):
         
         self.spawn_coord = coords
         size = (0.75 * 129,127)
-        image_file = "sprites/Minotaur.png"
+        image_file = "sprites/sprites_beta/enemy_1"
         Dyna_obj.__init__(self, coords, speed, size, image_file)
     
     def update(self, objects):
@@ -128,6 +168,16 @@ class Enemy(Dyna_obj):
             self.move_dir[0] = random.randint(-1, 1)
         self.speed[0] = 30 * self.move_dir[0]
         
+        if(self.move_dir[1] == 1 and self.footing):
+            self.image.fill((0, 0, 0))
+            self.image.set_colorkey((0, 0, 0))
+            self.anim_jump.blit(self.image, (0, 0))
+            
+        if(self.move_dir[1] == 0 and self.footing):
+            self.image.fill((0, 0, 0))
+            self.image.set_colorkey((0, 0, 0))
+            self.anim_stand.blit(self.image, (0, 0))
+        
         if not self.footing:
             self.speed[1] += 4
         self.footing = 0
@@ -136,7 +186,6 @@ class Enemy(Dyna_obj):
 
         self.rect.x += self.speed[0]
         self.check_collide(objects, (self.speed[0], 0))
-        print(self.speed)
         
 
 class Brick(pg.sprite.Sprite):
