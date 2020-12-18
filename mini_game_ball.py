@@ -34,6 +34,8 @@ class GameHandler:
         self.pool = []
         self.death = False
         self.clock = pygame.time.Clock()
+        self.win = False
+        self.RED = (255, 0, 0)
 
 
 class Ball(GameHandler):
@@ -56,6 +58,7 @@ class Ball(GameHandler):
             random.randint(0, self.direction)]
         self.color = self.WHITE
         self.radius = self.radius
+        
 
     def move_xy(self):
         """
@@ -101,43 +104,47 @@ class Ball(GameHandler):
         else:
             return False
 
+def mini_balls():
+    GH = GameHandler()
+    pygame.init()
 
-GH = GameHandler()
-pygame.init()
-
-while not GH.finished:
-    GH.clock.tick(GH.FPS)
-    time = pygame.time.get_ticks()
-    if not GH.end:
-        for ball in GH.pool:
-            ball.move()
-            pygame.display.update()
-        if (time - GH.time_of_prev_spawn >= GH.spawn_time) and \
-                (GH.counter < 10):
-            unit = Ball()
-            GH.pool.append(unit)
-            GH.time_of_prev_spawn = time
-            GH.counter += 1
-            pygame.display.update()
-        if time - GH.time_of_kill > 4 * GH.spawn_time:
-            GH.end = True
-            del GH.pool[:]
-            GH.screen.fill(GH.BLACK)
-            GH.death = True
-            GH.screen.fill((255, 0, 0))
-            pygame.display.update()
-        if GH.counter == 10 and len(GH.pool) == 0 and not GH.end:
-            GH.screen.fill(GH.WHITE)
-            GH.end = True
-            GH.finished = True
-            pygame.display.update()
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            GH.finished = True
-        elif event.type == pygame.MOUSEBUTTONDOWN:
-            x, y = event.pos
-            for i, ball in enumerate(GH.pool):
-                if ball.check(x, y):
-                    ball.kill()
-                    GH.time_of_kill = pygame.time.get_ticks()
-                    GH.pool.pop(i)
+    while not GH.finished:
+        GH.clock.tick(GH.FPS)
+        time = pygame.time.get_ticks()
+        if not GH.end:
+            for ball in GH.pool:
+                ball.move()
+                pygame.display.update()
+            if (time - GH.time_of_prev_spawn >= GH.spawn_time) and \
+                    (GH.counter < 10):
+                unit = Ball()
+                GH.pool.append(unit)
+                GH.time_of_prev_spawn = time
+                GH.counter += 1
+                pygame.display.update()
+            if time - GH.time_of_kill > 4 * GH.spawn_time:
+                GH.end = True
+                del GH.pool[:]
+                GH.screen.fill(GH.BLACK)
+                GH.death = True
+                GH.screen.fill(GH.RED)
+                GH.finished = True
+                pygame.display.update()
+            if GH.counter == 10 and len(GH.pool) == 0 and not GH.end:
+                GH.screen.fill(GH.WHITE)
+                GH.end = True
+                GH.finished = True
+                GH.win = True
+                pygame.display.update()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                GH.finished = True
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                x, y = event.pos
+                for i, ball in enumerate(GH.pool):
+                    if ball.check(x, y):
+                        ball.kill()
+                        GH.time_of_kill = pygame.time.get_ticks()
+                        GH.pool.pop(i)
+    return GH.win
+print(mini_balls())

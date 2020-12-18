@@ -180,6 +180,7 @@ class Manager_of_flappy():
         self.time_of_spawn = 1500
         self.time_of_prev_spawn = 0
         self.counter = 0
+        self.win = False
         pg.display.update()
 
 
@@ -216,13 +217,15 @@ class Manager_of_flappy():
         self.game_objects.draw(self.screen)
 
         if time - self.time_of_prev_spawn >= self.time_of_spawn \
-                and self.counter < 6:
+                and self.counter < 2:
             self.time_of_prev_spawn = time
             self.obstacles.append(FullArm())
             self.counter += 1
 
         if self.counter > 0 and len(self.obstacles) == 0:
             self.screen.fill(self.WHITE)
+            self.win = True
+            self.player.life = False
 
         for i, obj in enumerate(self.obstacles):
             obj.move(5)
@@ -233,18 +236,22 @@ class Manager_of_flappy():
         pg.display.update()
         return done
 
+def mini_flappy():
+    mngf = Manager_of_flappy()
+    clock = pg.time.Clock()
+    done = False
 
-mngf = Manager_of_flappy()
-clock = pg.time.Clock()
-done = False
 
-while not done:
-    clock.tick(60)
-    done = mngf.process(pg.event.get())
+    while not done:
+        clock.tick(60)
+        done = mngf.process(pg.event.get())
+        pg.display.update()
+    if not mngf.win:
+        mngf.screen.fill(mngf.RED)
+
     pg.display.update()
+    done = False
+    counter = 0
+    return mngf.win
 
-mngf.screen.fill(mngf.RED)
-pg.display.update()
-done = False
-counter = 0
-print('game over')
+print(mini_flappy())
