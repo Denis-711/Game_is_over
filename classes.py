@@ -192,7 +192,7 @@ class Player(Dyna_obj):
             self.speed[1] += 10
         self.footing = 0
         self.rect.y += self.speed[1]
-        self.check_spikes(spikes)                       #взаимодествие с шипами
+        self.check_spikes(spikes)                      # взаимодествие с шипами
         self.check_collide(objects, (0, self.speed[1]))
 
         self.rect.x += self.speed[0]
@@ -271,7 +271,7 @@ class Enemy(Dyna_obj):
                 self.atack_started = False
         if self.health <= 0:
             self.life = False
-        print(self.life)
+
 
 
 class Brick(Static_obj):
@@ -391,6 +391,14 @@ class Manager():
                              win_size)
 
         pg.display.set_caption("Game_is_over")
+        pg.font.init()
+        self.font = pg.font.Font('freesansbold.ttf', 32)
+        self.hurt_image = pg.image.load("sprites/hurt.png", "RGBA")
+        self.hurt_image = pg.transform.scale(self.hurt_image, (128, 108))
+        self.hurt_imageRect = self.hurt_image.get_rect()
+        self.hurt_imageRect.center = (100, 100)
+        self.WHITE = (255, 255, 255)
+        self.RED = (255, 51, 51)
 
     def handle_events(self, events):
         done = False
@@ -422,7 +430,6 @@ class Manager():
 
         for enemy in self.enemies:
             if enemy.life == False:
-	            print(enemy.life)
 	            enemy.kill()
 	            self.enemies.remove(enemy)
             enemy.update(self.bricks + self.spikes)
@@ -445,6 +452,12 @@ class Manager():
 
             if (dist < self.max_dist):
                 self.screen.blit(obj.image, self.camera.apply(obj))
+        text = self.font.render(str(self.player.health),
+                                True, self.WHITE, self.RED)
+        textRect = text.get_rect()
+        textRect.center = (100, 100)
+        self.screen.blit(self.hurt_image, self.hurt_imageRect)
+        self.screen.blit(text, textRect)
         pg.display.update()
         return done
 
