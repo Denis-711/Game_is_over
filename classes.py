@@ -17,11 +17,12 @@ class Dyna_obj(pg.sprite.Sprite):
         anim_jump = []
         anim_stand = []
         anim_delay = 1
+        atack_delay = 300
         for adress, dirs, files in anim_files:
             if (adress == image_file + "/atack"):
                 for one_file in files:
                     anim_atack.append(
-                        (str(adress + "/" + one_file), anim_delay))
+                        (str(adress + "/" + one_file), atack_delay))
             if (adress == image_file + "/jump"):
                 for one_file in files:
                     anim_jump.append(
@@ -31,6 +32,7 @@ class Dyna_obj(pg.sprite.Sprite):
                 for one_file in files:
                     anim_stand.append(
                         (str(adress + "/" + one_file), anim_delay))
+            
 
         self.anim_atack = pyganim.PygAnimation(anim_atack)
         self.anim_atack.play()
@@ -39,10 +41,15 @@ class Dyna_obj(pg.sprite.Sprite):
         self.anim_stand = pyganim.PygAnimation(anim_stand)
         self.anim_stand.play()
 
-        self.image = pg.Surface(size)
-        self.rect = pg.Rect(coords, (size))
+        self.image = pg.Surface(size[1])
+        self.rect = pg.Rect(coords, (size[0]))
         
-        self.health = 200  
+        self.atack = False
+        self.atack_started = False
+        self.atack_period = atack_delay
+         
+        self.health = 200
+        self.life = True 
         self.footing = 0
         self.move_dir = [0, 0]
         self.speed = speed
@@ -77,15 +84,32 @@ class Dyna_obj(pg.sprite.Sprite):
             for obj in objects:
                 if abs(obj.rect.x - self.rect.x) < max_dist:
                     if pg.sprite.collide_rect(self, obj):
-                        print("ok")
                         time = pg.time.get_ticks()
                         if obj.active :
                             obj.kill(self, time)
                         else:
                             obj.triggering()
     
+    def check_enemies(self, enemies):
+        max_dist = 400                  
+        for enemy in enemies:
+            if (abs(enemy.rect.x - self.rect.x) < max_dist):
+                if pg.sprite.collide_rect(self, enemy) and self.atack:
+                    time = pg.time.get_ticks()
+                    if(time - self.time_atack > 0.9 * self.atack_period):
+                        damage = 200
+                        enemy.get_damage(damage)
+            if type(self) == Enemy:
+                if pg.sprite.collide_rect(self, enemy) and not self.atack:
+                    self.activate_atack()
+              
     def get_damage(self, damage):
         self.health -= damage;
+    
+    def activate_atack(self):
+        self.atack = True
+        self.time_atack = pg.time.get_ticks()
+        self.atack_started = True
 
 
 class Static_obj(pg.sprite.Sprite):
@@ -112,7 +136,7 @@ class Camera():
 class Player(Dyna_obj):
     """
     Класс игрока.
-    Наследуется от pygame.sprite.Sprite и имеет станадартные атрибуты:
+    Наследуется от Dyna_obj и имеет станадартные атрибуты:
     image - поверхность с изображением персонажа
     rect - прямоугольник соотвествующий физической модели
            игрока в игровом простарнстве.
@@ -138,12 +162,16 @@ class Player(Dyna_obj):
         coords - начальные координаты положения(массив из 2 чисел)
         speed - начальная скорость движения(массив из 2 чисел)
         """
-        size = (86, 120)  # размер героя соответсвует размеру его картинки
+        size_mod = (89, 120)  # размер героя соответсвует размеру его картинки
+        size_pic = (125, 120)
+        size = (size_mod, size_pic)
+        
         image_file = "sprites/sprites_beta/GG"
         Dyna_obj.__init__(self, coords, speed, size, image_file)
-        self.life = True
+        self.health = 1000
 
-    def update(self, move_dir, objects, spikes):
+    def update(self, move_dir, atack_command, objects, spikes):
+        #взаимодествие с блоками
         self.move_dir = move_dir
         self.speed[0] = 40 * self.move_dir[0]
 
@@ -164,20 +192,42 @@ class Player(Dyna_obj):
             self.speed[1] += 10
         self.footing = 0
         self.rect.y += self.speed[1]
-        self.check_spikes(spikes)
+        self.check_spikes(spikes)                       #взаимодествие с шипами
         self.check_collide(objects, (0, self.speed[1]))
 
         self.rect.x += self.speed[0]
         self.check_collide(objects, (self.speed[0], 0))
-        print(self.health)
-
-
+        
+        #активация атаки
+        if not self.atack and atack_command:
+            self.activate_atack()
+        #атака
+        if self.atack:
+            time = pg.time.get_ticks()
+            flag = time - self.time_atack < self.atack_period
+            if(flag and self.atack_started):
+                self.atack_started = True
+                self.image.fill((0, 0, 0))
+                self.image.set_colorkey((0, 0, 0))
+                self.anim_atack.blit(self.image, (0, 0))
+                self.anim_atack.stop()
+                self.anim_atack.play()
+            if (time - self.time_atack > self.atack_period):
+                self.atack = False
+                self.time_atack = time
+                self.atack_started = False
+        if self.health < 0:
+            self.life = False
+        
+                
 class Enemy(Dyna_obj):
     def __init__(self, coords, speed):
         self.max_dist = 700  # определяет доступную зону
 
         self.spawn_coord = coords
-        size = (127, 120)
+        size_mod = (127, 120)  # размер героя соответсвует размеру его картинки
+        size_pic = (127, 120)
+        size = (size_mod, size_pic)
         image_file = "sprites/sprites_beta/enemy_1"
         Dyna_obj.__init__(self, coords, speed, size, image_file)
 
@@ -203,6 +253,25 @@ class Enemy(Dyna_obj):
 
         self.rect.x += self.speed[0]
         self.check_collide(objects, (self.speed[0], 0))
+        
+        #атака
+        if self.atack:
+            time = pg.time.get_ticks()
+            flag = time - self.time_atack < self.atack_period
+            if(flag and self.atack_started):
+                self.atack_started = True
+                self.image.fill((0, 0, 0))
+                self.image.set_colorkey((0, 0, 0))
+                self.anim_atack.blit(self.image, (0, 0))
+                self.anim_atack.stop()
+                self.anim_atack.play()
+            if (time - self.time_atack > self.atack_period):
+                self.atack = False
+                self.time_atack = time
+                self.atack_started = False
+        if self.health <= 0:
+            self.life = False
+        print(self.life)
 
 
 class Brick(Static_obj):
@@ -247,8 +316,6 @@ class BlockSpikes(pg.sprite.Sprite):
         time = pg.time.get_ticks()
         if not self.active:
             self.active = True
-            
-
             self.time = time
 
     def update(self):
@@ -260,7 +327,6 @@ class BlockSpikes(pg.sprite.Sprite):
                 self.image.fill((0, 0, 0))
                 self.image.set_colorkey((0, 0, 0))
                 self.anim_spike.blit(self.image, (0, 0))
-            print("True")
             if (time - self.time > self.active_time):
                 self.active = False
                 self.time = time
@@ -284,6 +350,7 @@ class Manager():
 
         self.max_dist = k * (win_size[0] ** 2 + win_size[1] ** 2) ** 0.5
         self.move_dir = [0, 0]
+        self.atack_command = False
         pg.init()
         with open(
                 'platform.yaml') as f:  # открытие файла ямл, где хранятся данные о расположении блоков
@@ -344,16 +411,28 @@ class Manager():
                     self.move_dir[0] -= -1
                 elif event.key == pg.K_d:
                     self.move_dir[0] -= 1
-        self.player.update(self.move_dir, self.bricks + self.spikes, self.spikes)
+            if event.type == pg.MOUSEBUTTONDOWN:
+                self.atack_command = True
+        self.player.update(self.move_dir, self.atack_command, self.bricks + self.spikes, self.spikes)
+        self.atack_command = False
         return done
 
     def process(self, events):
         done = self.handle_events(events)
 
         for enemy in self.enemies:
+            if enemy.life == False:
+	            print(enemy.life)
+	            enemy.kill()
+	            self.enemies.remove(enemy)
             enemy.update(self.bricks + self.spikes)
         for spike in self.spikes:
             spike.update()
+        
+        self.player.check_enemies(self.enemies)
+        for enemy in self.enemies:
+            enemy.check_enemies([self.player])
+        
         background = pg.Surface(self.level_size)
         background.fill((0, 0, 0))
         self.screen.blit(background, (0, 0))
