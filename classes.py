@@ -2,13 +2,14 @@ import pygame as pg
 import yaml
 import random
 import os
-import pyganim 
+import pyganim
+
 
 class Dyna_obj(pg.sprite.Sprite):
     def __init__(self, coords, speed, size, image_file):
         pg.sprite.Sprite.__init__(self)
-        
-        #извлечение анимаций
+
+        # извлечение анимаций
         anim_files = []
         for i in os.walk(image_file):
             anim_files.append(i)
@@ -17,31 +18,35 @@ class Dyna_obj(pg.sprite.Sprite):
         anim_stand = []
         anim_delay = 1
         for adress, dirs, files in anim_files:
-            if(adress == image_file + "/atack"):
+            if (adress == image_file + "/atack"):
                 for one_file in files:
-                    anim_atack.append((str(adress + "/" + one_file), anim_delay))
-            if(adress == image_file + "/jump"):
+                    anim_atack.append(
+                        (str(adress + "/" + one_file), anim_delay))
+            if (adress == image_file + "/jump"):
                 for one_file in files:
-                    anim_jump.append((str(adress + "/" + one_file), anim_delay))
-	        
-            if(adress == image_file + "/stand"):
+                    anim_jump.append(
+                        (str(adress + "/" + one_file), anim_delay))
+
+            if (adress == image_file + "/stand"):
                 for one_file in files:
-                    anim_stand.append((str(adress + "/" + one_file), anim_delay))
+                    anim_stand.append(
+                        (str(adress + "/" + one_file), anim_delay))
 
         self.anim_atack = pyganim.PygAnimation(anim_atack)
         self.anim_atack.play()
         self.anim_jump = pyganim.PygAnimation(anim_jump)
         self.anim_jump.play()
         self.anim_stand = pyganim.PygAnimation(anim_stand)
-        self.anim_stand.play()    
-        
+        self.anim_stand.play()
+
         self.image = pg.Surface(size)
         self.rect = pg.Rect(coords, (size))
         
+        self.health = 200  
         self.footing = 0
         self.move_dir = [0, 0]
         self.speed = speed
-    
+
     def check_collide(self, objects, velocity):
         #максимальная дальность взаимодействия
         max_dist = 400                    
@@ -66,6 +71,22 @@ class Dyna_obj(pg.sprite.Sprite):
                         self.speed[1] = 0
                         self.rect.top = obj.rect.bottom
 
+    def check_spikes(self, objects):
+        max_dist = 400
+        if type(self) == Player:
+            for obj in objects:
+                if abs(obj.rect.x - self.rect.x) < max_dist:
+                    if pg.sprite.collide_rect(self, obj):
+                        print("ok")
+                        time = pg.time.get_ticks()
+                        if obj.active :
+                            obj.kill(self, time)
+                        else:
+                            obj.triggering()
+    
+    def get_damage(self, damage):
+        self.health -= damage;
+
 
 class Static_obj(pg.sprite.Sprite):
     def __init__(self, coords, size, image_file):
@@ -80,10 +101,10 @@ class Camera():
         self.win_size = win_size
         self.rect = pg.Rect((0, 0), full_size)
         self.camera_func = camera_func
-    
+
     def apply(self, target):
         return target.rect.move(self.rect.topleft)
-    
+
     def update(self, target):
         self.rect = self.camera_func(self.rect, target.rect, self.win_size)
 
@@ -108,7 +129,8 @@ class Player(Dyna_obj):
     Атрибуты взаимодействия с блоками:
     footing - если 1, то герой находится ногами на блоке в данный момент
               если 0, то герой не имеет опоры в данный момент              
-    """   
+    """
+
     def __init__(self, coords, speed):
         """
         Функция инициализирует объект игрока.
@@ -119,24 +141,22 @@ class Player(Dyna_obj):
         size = (86, 120)  # размер героя соответсвует размеру его картинки
         image_file = "sprites/sprites_beta/GG"
         Dyna_obj.__init__(self, coords, speed, size, image_file)
-        
-        
-    def update(self, move_dir, objects):
-		
+        self.life = True
+
+    def update(self, move_dir, objects, spikes):
         self.move_dir = move_dir
-        print(self.move_dir)
         self.speed[0] = 40 * self.move_dir[0]
-        
-        if(self.move_dir[1] == 1 and self.footing):
+
+        if (self.move_dir[1] == 1 and self.footing):
             self.image.fill((0, 0, 0))
             self.image.set_colorkey((0, 0, 0))
             self.anim_jump.blit(self.image, (0, 0))
-            
-        if(self.move_dir[1] == 0 and self.footing):
+
+        if (self.move_dir[1] == 0 and self.footing):
             self.image.fill((0, 0, 0))
             self.image.set_colorkey((0, 0, 0))
             self.anim_stand.blit(self.image, (0, 0))
-           
+
         if self.footing:
             self.speed[1] = -80 * self.move_dir[1]
             self.footing = (self.move_dir[1] + 1) % 2
@@ -144,21 +164,23 @@ class Player(Dyna_obj):
             self.speed[1] += 10
         self.footing = 0
         self.rect.y += self.speed[1]
+        self.check_spikes(spikes)
         self.check_collide(objects, (0, self.speed[1]))
 
         self.rect.x += self.speed[0]
         self.check_collide(objects, (self.speed[0], 0))
+        print(self.health)
 
 
 class Enemy(Dyna_obj):
     def __init__(self, coords, speed):
-        self.max_dist = 700                           #определяет доступную зону
-        
+        self.max_dist = 700  # определяет доступную зону
+
         self.spawn_coord = coords
-        size = (0.75 * 129,127)
+        size = (127, 120)
         image_file = "sprites/sprites_beta/enemy_1"
         Dyna_obj.__init__(self, coords, speed, size, image_file)
-    
+
     def update(self, objects):
         if (self.rect.x > self.spawn_coord[0] + self.max_dist):
             self.move_dir[0] = -1
@@ -166,18 +188,13 @@ class Enemy(Dyna_obj):
             self.move_dir[0] = 1
         if (self.speed[0] == 0):
             self.move_dir[0] = random.randint(-1, 1)
-        self.speed[0] = 30 * self.move_dir[0]
-        
-        if(self.move_dir[1] == 1 and self.footing):
-            self.image.fill((0, 0, 0))
-            self.image.set_colorkey((0, 0, 0))
-            self.anim_jump.blit(self.image, (0, 0))
-            
-        if(self.move_dir[1] == 0 and self.footing):
+        self.speed[0] = 30 * self.move_dir[0]            
+
+        if (self.move_dir[1] == 0 and self.footing):
             self.image.fill((0, 0, 0))
             self.image.set_colorkey((0, 0, 0))
             self.anim_stand.blit(self.image, (0, 0))
-        
+
         if not self.footing:
             self.speed[1] += 4
         self.footing = 0
@@ -186,31 +203,98 @@ class Enemy(Dyna_obj):
 
         self.rect.x += self.speed[0]
         self.check_collide(objects, (self.speed[0], 0))
-        
 
-class Brick(pg.sprite.Sprite):
+
+class Brick(Static_obj):
     def __init__(self, coords):
         size = (128, 64)
         image_file = "sprites/block_deck.png"
         Static_obj.__init__(self, coords, size, image_file)
-       
 
+
+class BlockSpikes(pg.sprite.Sprite):
+    def __init__(self, coords):
+        pg.sprite.Sprite.__init__(self)
+        size = (128, 64)
+        image_file = "sprites/sprites_beta/spike"
+        self.image = pg.Surface(size)
+        self.rect = pg.Rect(coords, (size))
+        self.active = False
+        self.time = 0
+        self.active_time = 1000
+        anim_files = []
+        for i in os.walk(image_file):
+            anim_files.append(i)
+        anim_spike = []
+        anim_stand = []
+        anim_delay = 3
+        for adress, dirs, files in anim_files:
+            if (adress == image_file + "/anim"):
+                for one_file in files:
+                    anim_spike.append(
+                        (str(adress + "/" + one_file), anim_delay))
+        for adress, dirs, files in anim_files:
+            if (adress == image_file + "/stand"):
+                for one_file in files:
+                    anim_stand.append(
+                        (str(adress + "/" + one_file), anim_delay))
+        self.anim_spike = pyganim.PygAnimation(anim_spike)
+        self.anim_spike.play()
+        self.anim_stand = pyganim.PygAnimation(anim_stand)
+        self.anim_stand.play()
+
+    def triggering(self):
+        time = pg.time.get_ticks()
+        if not self.active:
+            self.active = True
+            
+
+            self.time = time
+
+    def update(self):
+        if self.active:
+            time = pg.time.get_ticks()
+            flag = time - self.time > self.active_time * 0.33
+            flag = flag and time - self.time < self.active_time *0.66
+            if(flag):
+                self.image.fill((0, 0, 0))
+                self.image.set_colorkey((0, 0, 0))
+                self.anim_spike.blit(self.image, (0, 0))
+            print("True")
+            if (time - self.time > self.active_time):
+                self.active = False
+                self.time = time
+        else:
+            self.image.fill((0, 0, 0))
+            self.image.set_colorkey((0, 0, 0))
+            self.anim_stand.blit(self.image, (0, 0))
+
+    def kill(self, person, time):
+        flag = time - self.time > self.active_time * 0.33
+        flag = flag and time - self.time < self.active_time *0.66
+        if flag:
+            person.get_damage(100)
+        
+		
 class Manager():
     def __init__(self):
-        brick_size = (128, 64)   #размер обычного блока
-        win_size = (900, 1800)   #размер игрового окна
-        k = 1                    #регулирование дальности прорисовки
-        
-        self.max_dist = k * (win_size[0]**2 + win_size[1]**2)**0.5        
+        brick_size = (128, 64)  # размер обычного блока
+        win_size = (900, 1800)  # размер игрового окна
+        k = 1  # регулирование дальности прорисовки
+
+        self.max_dist = k * (win_size[0] ** 2 + win_size[1] ** 2) ** 0.5
         self.move_dir = [0, 0]
         pg.init()
-        with open('platform.yaml') as f:  # открытие файла ямл, где хранятся данные о расположении блоков
+        with open(
+                'platform.yaml') as f:  # открытие файла ямл, где хранятся данные о расположении блоков
             level = yaml.safe_load(f)
 
-        self.level_size = (len(level[0]) * brick_size[0], len(level) * brick_size[1])
+        self.level_size = (
+        len(level[0]) * brick_size[0], len(level) * brick_size[1])
         brick = Brick((len(level[0]) * 2, len(level) * 1))
         self.bricks = []
         self.enemies = []
+        self.spikes = []
         self.game_objects = pg.sprite.Group()
         for i in range(len(level)):
             for j in range(len(level[0])):
@@ -225,15 +309,21 @@ class Manager():
                     enemy = Enemy(enemy_coord, [0, 0])
                     self.game_objects.add(enemy)
                     self.enemies.append(enemy)
-                              
+                if (level[i][j] == "-"):
+                    block_spikes = BlockSpikes([j * brick_size[0],
+                                                i * brick_size[1]])
+                    self.game_objects.add(block_spikes)
+                    self.spikes.append(block_spikes)
+
         self.player = Player(spawn_coords, [0, 0])
         self.game_objects.add(self.player)
         self.screen = pg.display.set_mode((1800, 900))
-         
+
         self.camera = Camera(camera_configure, (len(level[0]) * brick_size[0],
-                                                len(level) * brick_size[1]), win_size)
-        
-        pg.display.set_caption("Game_is_over")    
+                                                len(level) * brick_size[1]),
+                             win_size)
+
+        pg.display.set_caption("Game_is_over")
 
     def handle_events(self, events):
         done = False
@@ -254,30 +344,31 @@ class Manager():
                     self.move_dir[0] -= -1
                 elif event.key == pg.K_d:
                     self.move_dir[0] -= 1
-        
-        self.player.update(self.move_dir, self.bricks)
+        self.player.update(self.move_dir, self.bricks + self.spikes, self.spikes)
         return done
-        
+
     def process(self, events):
         done = self.handle_events(events)
-        
+
         for enemy in self.enemies:
-            enemy.update(self.bricks)
+            enemy.update(self.bricks + self.spikes)
+        for spike in self.spikes:
+            spike.update()
         background = pg.Surface(self.level_size)
         background.fill((0, 0, 0))
         self.screen.blit(background, (0, 0))
-        
-        self.camera.update(self.player) 
+
+        self.camera.update(self.player)
         for obj in self.game_objects:
             dist_x = (self.player.rect.x - obj.rect.x)
             dist_y = (self.player.rect.y - obj.rect.y)
-            dist = (dist_y**2 + dist_x**2)**(0.5)
-            
-            if(dist < self.max_dist):
+            dist = (dist_y ** 2 + dist_x ** 2) ** (0.5)
+
+            if (dist < self.max_dist):
                 self.screen.blit(obj.image, self.camera.apply(obj))
         pg.display.update()
         return done
-        
+
 
 def camera_configure(camera, target_rect, win_size):
     win_height = win_size[0]
@@ -287,17 +378,17 @@ def camera_configure(camera, target_rect, win_size):
     w = camera.width
     h = camera.height
 
-    l, t = -l+win_width/ 2, -t + target_rect.height
+    l, t = -l + win_width / 2, -t + target_rect.height
 
-    l = min(0, l)                           # Не движемся дальше левой границы
-    l = max(-(camera.width-win_width), l)   # Не движемся дальше правой границы
-    
+    l = min(0, l)  # Не движемся дальше левой границы
+    l = max(-(camera.width - win_width),
+            l)  # Не движемся дальше правой границы
+
     """
     Если игрок внизу, то камера ориентируется по уровню пола,
     если игрок далеко от низа, то камера ориентируется так,
     чтобы игрок был вверху экрана
     """
-    t = max(t, -camera.height + win_height) 
-    
-    return pg.Rect(l, t, w, h)
+    t = max(t, -camera.height + win_height)
 
+    return pg.Rect(l, t, w, h)
