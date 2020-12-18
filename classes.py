@@ -16,6 +16,7 @@ class Dyna_obj(pg.sprite.Sprite):
         anim_atack = []
         anim_jump = []
         anim_stand = []
+        anim_walk = []
         anim_delay = 1
         atack_delay = 300
         for adress, dirs, files in anim_files:
@@ -33,7 +34,13 @@ class Dyna_obj(pg.sprite.Sprite):
                     anim_stand.append(
                         (str(adress + "/" + one_file), anim_delay))
             
-
+            if (adress == image_file + "/walk"):
+                for one_file in files:
+                    anim_walk.append(
+                        (str(adress + "/" + one_file), anim_delay))
+            
+        self.anim_walk = pyganim.PygAnimation(anim_walk)
+        self.anim_walk.play()
         self.anim_atack = pyganim.PygAnimation(anim_atack)
         self.anim_atack.play()
         self.anim_jump = pyganim.PygAnimation(anim_jump)
@@ -179,11 +186,16 @@ class Player(Dyna_obj):
             self.image.fill((0, 0, 0))
             self.image.set_colorkey((0, 0, 0))
             self.anim_jump.blit(self.image, (0, 0))
+            if self.speed[0] < 0:
+                self.image = pg.transform.flip(self.image, True, False)
 
         if (self.move_dir[1] == 0 and self.footing):
             self.image.fill((0, 0, 0))
             self.image.set_colorkey((0, 0, 0))
             self.anim_stand.blit(self.image, (0, 0))
+            if self.speed[0] < 0:
+                self.image = pg.transform.flip(self.image, True, False)
+
 
         if self.footing:
             self.speed[1] = -80 * self.move_dir[1]
@@ -210,20 +222,23 @@ class Player(Dyna_obj):
                 self.image.fill((0, 0, 0))
                 self.image.set_colorkey((0, 0, 0))
                 self.anim_atack.blit(self.image, (0, 0))
+                if self.speed[0] < 0:
+                    self.image = pg.transform.flip(self.image, True, False)
                 self.anim_atack.stop()
                 self.anim_atack.play()
             if (time - self.time_atack > self.atack_period):
                 self.atack = False
                 self.time_atack = time
                 self.atack_started = False
-        if self.health < 0:
+        if self.health <= 0:
             self.life = False
         
                 
 class Enemy(Dyna_obj):
     def __init__(self, coords, speed):
         self.max_dist = 700  # определяет доступную зону
-
+        self.gor_speed = 15  # определяет скорость по горизнтали  
+           
         self.spawn_coord = coords
         size_mod = (127, 120)  # размер героя соответсвует размеру его картинки
         size_pic = (127, 120)
@@ -238,12 +253,14 @@ class Enemy(Dyna_obj):
             self.move_dir[0] = 1
         if (self.speed[0] == 0):
             self.move_dir[0] = random.randint(-1, 1)
-        self.speed[0] = 30 * self.move_dir[0]            
+        self.speed[0] = self.gor_speed * self.move_dir[0]            
 
         if (self.move_dir[1] == 0 and self.footing):
             self.image.fill((0, 0, 0))
             self.image.set_colorkey((0, 0, 0))
             self.anim_stand.blit(self.image, (0, 0))
+            if self.speed[0] < 0:
+                self.image = pg.transform.flip(self.image, True, False)
 
         if not self.footing:
             self.speed[1] += 4
@@ -253,7 +270,6 @@ class Enemy(Dyna_obj):
 
         self.rect.x += self.speed[0]
         self.check_collide(objects, (self.speed[0], 0))
-        
         #атака
         if self.atack:
             time = pg.time.get_ticks()
@@ -263,6 +279,8 @@ class Enemy(Dyna_obj):
                 self.image.fill((0, 0, 0))
                 self.image.set_colorkey((0, 0, 0))
                 self.anim_atack.blit(self.image, (0, 0))
+                if self.speed[0] < 0:
+                    self.image = pg.transform.flip(self.image, True, False)
                 self.anim_atack.stop()
                 self.anim_atack.play()
             if (time - self.time_atack > self.atack_period):
@@ -271,7 +289,6 @@ class Enemy(Dyna_obj):
                 self.atack_started = False
         if self.health <= 0:
             self.life = False
-
 
 
 class Brick(Static_obj):
@@ -343,7 +360,11 @@ class BlockSpikes(pg.sprite.Sprite):
         
 		
 class Manager():
-    def __init__(self):
+    def __init__(self, playing):
+        self.playing = playing
+		
+    
+    def setting(self):
         brick_size = (128, 64)  # размер обычного блока
         win_size = (900, 1800)  # размер игрового окна
         k = 1  # регулирование дальности прорисовки
@@ -404,7 +425,7 @@ class Manager():
         done = False
         for event in events:
             if event.type == pg.QUIT:
-                done = True
+                self.playing = False
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_SPACE:
                     self.move_dir[1] += 1
@@ -459,6 +480,9 @@ class Manager():
         self.screen.blit(self.hurt_image, self.hurt_imageRect)
         self.screen.blit(text, textRect)
         pg.display.update()
+        if not self.player.life:
+            done = True
+
         return done
 
 
