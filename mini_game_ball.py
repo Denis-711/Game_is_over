@@ -26,6 +26,7 @@ class GameHandler:
         self.BLACK = (0, 0, 0)
         self.WHITE = (255, 255, 255)
         self.counter = 0
+        self.final_start = True
         self.start = True
         self.end = False
         self.pause = False
@@ -104,11 +105,16 @@ class Ball(GameHandler):
         else:
             return False
 
+
 def mini_balls():
     GH = GameHandler()
-    pygame.init()
+
 
     while not GH.finished:
+        if(GH.final_start):
+            GH.time_of_prev_spawn = pygame.time.get_ticks()
+            GH.time_of_kill = pygame.time.get_ticks()
+            GH.final_start = False
         GH.clock.tick(GH.FPS)
         time = pygame.time.get_ticks()
         if not GH.end:
@@ -147,4 +153,4 @@ def mini_balls():
                         GH.time_of_kill = pygame.time.get_ticks()
                         GH.pool.pop(i)
     return GH.win
-print(mini_balls())
+

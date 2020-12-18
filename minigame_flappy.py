@@ -168,7 +168,6 @@ class FullArm():
 class Manager_of_flappy():
     def __init__(self):
         self.move_dir = [0, 0]
-        pg.init()
         self.player = Hurt([600, 300], [0, 0])
         self.obstacles = []
         self.game_objects = pg.sprite.Group()
@@ -254,4 +253,4 @@ def mini_flappy():
     counter = 0
     return mngf.win
 
-print(mini_flappy())
+

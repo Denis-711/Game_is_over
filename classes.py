@@ -298,6 +298,13 @@ class Brick(Static_obj):
         Static_obj.__init__(self, coords, size, image_file)
 
 
+class Dragon(Static_obj):
+    def __init__(self, coords):
+        size = (336, 200)
+        image_file = "sprites/dragon.png"
+        Static_obj.__init__(self, coords, size, image_file)
+
+
 class BlockSpikes(pg.sprite.Sprite):
     def __init__(self, coords):
         pg.sprite.Sprite.__init__(self)
@@ -358,12 +365,11 @@ class BlockSpikes(pg.sprite.Sprite):
         if flag:
             person.get_damage(100)
         
-		
+	
 class Manager():
     def __init__(self, playing):
         self.playing = playing
 		
-    
     def setting(self):
         brick_size = (128, 64)  # размер обычного блока
         win_size = (900, 1800)  # размер игрового окна
@@ -392,6 +398,8 @@ class Manager():
                     self.bricks.append(brick)
                 if (level[i][j] == "0"):
                     spawn_coords = [j * brick_size[0], i * brick_size[1]]
+                if (level[i][j] == "9"):
+                    dragon_coords = [j * brick_size[0], i * brick_size[1]]
                 if (level[i][j] == "1"):
                     enemy_coord = [j * brick_size[0], i * brick_size[1]]
                     enemy = Enemy(enemy_coord, [0, 0])
@@ -404,6 +412,10 @@ class Manager():
                     self.spikes.append(block_spikes)
 
         self.player = Player(spawn_coords, [0, 0])
+        self.dragon = Dragon(dragon_coords)
+        self.final = False
+
+        self.game_objects.add(self.dragon)
         self.game_objects.add(self.player)
         self.screen = pg.display.set_mode((1800, 900))
 
@@ -480,6 +492,9 @@ class Manager():
         self.screen.blit(self.hurt_image, self.hurt_imageRect)
         self.screen.blit(text, textRect)
         pg.display.update()
+        if pg.sprite.collide_rect(self.player, self.dragon):
+            self.final = True
+			
         if not self.player.life:
             done = True
 
