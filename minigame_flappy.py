@@ -45,7 +45,7 @@ class Hurt(pg.sprite.Sprite):
     def update(self, move_dir, objects, screen_height=600):
         self.move_dir = move_dir
         self.speed[0] = 20 * self.move_dir[0]
-        self.speed[1] = -10 * self.move_dir[1]
+        self.speed[1] = -5 * self.move_dir[1]
         if self.rect.centery >= screen_height // 12:
             self.speed[1] += 0.5
         self.rect.y += self.speed[1]
@@ -53,9 +53,10 @@ class Hurt(pg.sprite.Sprite):
 
         self.rect.x += self.speed[0]
         self.check_collide(objects, (self.speed[0], 0))
-        print(self.speed)
 
-    def check_collide(self, objects, velocity):
+
+    def check_collide(self, objects, velocity,
+                      screen_height=600, hurt_height=32):
         for obj in objects:
             for sprite in obj.sprites1:
                 if pg.sprite.collide_rect(self, sprite):
@@ -63,18 +64,14 @@ class Hurt(pg.sprite.Sprite):
                     if (velocity[0] > 0):
                         self.rect.right = sprite.rect.left
                         self.speed[0] = 0
-                        print('right')
                     if (velocity[0] < 0):
                         self.rect.left = sprite.rect.right
                         self.speed[0] = 0
-                        print('left')
                     if (velocity[1] > 0):
                         self.rect.bottom = sprite.rect.top
                         self.speed[1] = 0
-                        print('bottom')
                     if (velocity[1] < 0):
                         self.speed[1] = 0
-                        print('top')
                         self.rect.top = sprite.rect.bottom
             for sprite in obj.sprites2:
                 if pg.sprite.collide_rect(self, sprite):
@@ -82,19 +79,20 @@ class Hurt(pg.sprite.Sprite):
                     if (velocity[0] > 0):
                         self.rect.right = sprite.rect.left
                         self.speed[0] = 0
-                        print('right')
                     if (velocity[0] < 0):
                         self.rect.left = sprite.rect.right
                         self.speed[0] = 0
-                        print('left')
                     if (velocity[1] > 0):
                         self.rect.bottom = sprite.rect.top
                         self.speed[1] = 0
-                        print('bottom')
                     if (velocity[1] < 0):
                         self.speed[1] = 0
-                        print('top')
                         self.rect.top = sprite.rect.bottom
+
+        if self.rect.y <= 0:
+            self.rect.y = 0
+        elif self.rect.y >= screen_height - hurt_height:
+            self.rect.y = screen_height - hurt_height
 
 
 class ClawUp(pg.sprite.Sprite):
@@ -178,8 +176,10 @@ class Manager_of_flappy():
         self.screen = pg.display.set_mode((1200, 600))
         self.BLACK = (0, 0, 0)
         self.RED = (255, 0, 0)
-        self.time_of_spawn = 1000
+        self.WHITE = (255, 255, 255)
+        self.time_of_spawn = 1500
         self.time_of_prev_spawn = 0
+        self.counter = 0
         pg.display.update()
 
 
@@ -194,19 +194,12 @@ class Manager_of_flappy():
                         self.move_dir[1] += 1
                     elif event.key == pg.K_s:
                         self.move_dir[1] += -1
-                    if event.key == pg.K_a:
-                        self.move_dir[0] += -1
-                    elif event.key == pg.K_d:
-                        self.move_dir[0] += 1
                 if event.type == pg.KEYUP:
                     if event.key == pg.K_w:
                         self.move_dir[1] -= 1
                     elif event.key == pg.K_s:
                         self.move_dir[1] -= -1
-                    if event.key == pg.K_a:
-                        self.move_dir[0] -= -1
-                    elif event.key == pg.K_d:
-                        self.move_dir[0] -= 1
+
         else:
             done = True
 
@@ -221,9 +214,16 @@ class Manager_of_flappy():
         time = pg.time.get_ticks()
         self.screen.fill(self.BLACK)
         self.game_objects.draw(self.screen)
-        if time - self.time_of_prev_spawn >= self.time_of_spawn:
+
+        if time - self.time_of_prev_spawn >= self.time_of_spawn \
+                and self.counter < 6:
             self.time_of_prev_spawn = time
             self.obstacles.append(FullArm())
+            self.counter += 1
+
+        if self.counter > 0 and len(self.obstacles) == 0:
+            self.screen.fill(self.WHITE)
+
         for i, obj in enumerate(self.obstacles):
             obj.move(5)
             obj.draw(self.screen)
